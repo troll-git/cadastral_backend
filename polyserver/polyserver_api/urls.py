@@ -7,6 +7,7 @@ from .views import DzialkiViewSet
 
 router = routers.DefaultRouter()
 router.register('dzialki',DzialkiViewSet)
+router.register('dzialki', DzialkiViewSet , basename='Dzialki')
 #router.register('users',UserViewSet)
 
 urlpatterns = [

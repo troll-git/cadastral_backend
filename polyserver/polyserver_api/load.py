@@ -19,10 +19,12 @@ dzialki_mapping = {
 }
 
 dane_shp = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../../data', 'test.shp'),
+    os.path.join(os.path.dirname(__file__), '../../data', 'malopolska.shp'),
 )
 
 def run(verbose=True):
     print(dane_shp)
     lm = LayerMapping(Dzialki, dane_shp, dzialki_mapping, transform=True)
     lm.save(strict=True, verbose=verbose)
+
+
