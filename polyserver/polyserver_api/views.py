@@ -1,7 +1,9 @@
 from django.shortcuts import render
 from rest_framework import viewsets
 from .models import Dzialki
+from .models import Pozwolenia
 from .serializers import DzialkiSerializer
+from .serializers import PozwoleniaSerializer
 from django.contrib.gis.geos import Polygon
 from django.core.serializers import serialize
 from rest_framework.authentication import TokenAuthentication
@@ -32,6 +34,10 @@ class DzialkiViewSet(viewsets.ModelViewSet):
             queryset = Dzialki.objects.filter(mpoly__bboverlaps=polygon)
             print(bbox)
         return queryset
+
+class PozwoleniaViewSet(viewsets.ModelViewSet):
+    queryset = Pozwolenia.objects.all()
+    serializer_class = PozwoleniaSerializer
 
     #authentication_classes = (TokenAuthentication,)
     #permission_classes = (IsAuthenticated,)
