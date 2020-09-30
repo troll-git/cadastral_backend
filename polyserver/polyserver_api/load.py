@@ -53,7 +53,7 @@ powzolenia_mapping = {
 }
 
 dane_shp = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../../data', 'malopolska.shp'),
+    os.path.join(os.path.dirname(__file__), '../../../data', 'test.shp'),
 )
 
 dane_csv = os.path.abspath(
