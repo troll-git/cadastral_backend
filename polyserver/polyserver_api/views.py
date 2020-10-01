@@ -1,7 +1,11 @@
 from django.shortcuts import render
 from rest_framework import viewsets
 from .models import Dzialki
+from .models import Pozwolenia
+from .models import PozwoleniaGeom
 from .serializers import DzialkiSerializer
+from .serializers import PozwoleniaSerializer
+from .serializers import PozwoleniaGeomSerializer
 from django.contrib.gis.geos import Polygon
 from django.core.serializers import serialize
 from rest_framework.authentication import TokenAuthentication
@@ -33,7 +37,16 @@ class DzialkiViewSet(viewsets.ModelViewSet):
             print(bbox)
         return queryset
 
+class PozwoleniaViewSet(viewsets.ModelViewSet):
+    queryset = Pozwolenia.objects.all()
+    serializer_class = PozwoleniaSerializer
+
     #authentication_classes = (TokenAuthentication,)
     #permission_classes = (IsAuthenticated,)
     #filter_backends = [DjangoFilterBackend]
     #filterset_fields = ['name']
+
+
+class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
+    queryset = PozwoleniaGeom.objects.all()
+    serializer_class = PozwoleniaGeomSerializer

@@ -1,0 +1,3 @@
+TRUNCATE TABLE polyserver_api_pozwoleniageom;
+INSERT INTO polyserver_api_pozwoleniageom SELECT pozwolenia.*,mpoly FROM  polyserver_api_dzialki dzialki
+		INNER JOIN polyserver_api_pozwolenia pozwolenia ON pozwolenia.identyfikator=dzialki.identyfikator
