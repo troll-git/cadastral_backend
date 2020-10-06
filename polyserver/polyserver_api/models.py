@@ -2,7 +2,7 @@ from django.contrib.gis.db import models
 
 # Create your models here.
 class Dzialki(models.Model):
-    gid = models.IntegerField()
+    #gid = models.IntegerField()
     objectid = models.IntegerField()
     identyfikator = models.CharField(max_length=100)
     powierzchnia = models.FloatField()

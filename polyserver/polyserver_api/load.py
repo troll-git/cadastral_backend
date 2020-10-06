@@ -4,18 +4,18 @@ from .models import Dzialki
 from .models import Pozwolenia
 
 dzialki_mapping = {
-    'gid' : 'gid',
-    'objectid' :'objectid',
-    'identyfikator' :'identyfika',
-    'powierzchnia':'powierzchn',
-    'teryt':'teryt',
-    'numer':'numer',
-    'wojewodztwo':'wojewodztw',
-    'powiat':'powiat',
-    'gmina':'gmina',
-    'data_od':'data_od',
-    'length':'shape_leng',
-    'area':'shape_area',
+    #'gid' : 'gid',
+    'objectid' :'OBJECTID',
+    'identyfikator' :'IDENTYFIKA',
+    'powierzchnia':'POWIERZCHN',
+    'teryt':'TERYT',
+    'numer':'NUMER',
+    'wojewodztwo':'WOJEWODZTW',
+    'powiat':'POWIAT',
+    'gmina':'GMINA',
+    'data_od':'DATA_OD',
+    'length':'Shape_Leng',
+    'area':'Shape_Area',
     'mpoly':'MULTIPOLYGON',
 }
 
@@ -53,7 +53,7 @@ powzolenia_mapping = {
 }
 
 dane_shp = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../../../data', 'limanowies.shp'),
+    os.path.join(os.path.dirname(__file__), '../../../data', '12_Nowy Sącz.shp'),
 )
 
 dane_csv = os.path.abspath(
