@@ -33,15 +33,19 @@ class Command(BaseCommand):
         for file in os.listdir(directory):
             if file.endswith(".csv"):
                 data=self.process_file(directory + '/' + file)
-                #self.send_sql(data)
+                self.failed=self.send_sql(data)
+                save_file_name=directory+'/'+file.split('.')[0]+"_failed.csv"
+                #uncomment to save file
+                self.failed.to_csv(save_file_name,index=False,sep='#')
+                #print(self.failed)
 
     def process_file(self,file):
         print(file)
-        data=pd.read_csv(file,delimiter="#",error_bad_lines=False)
+        data=pd.read_csv(file,delimiter="#",nrows=50000,error_bad_lines=False)
         data = data.replace({np.nan: None})
         data['identyfikator']=data['jednosta_numer_ew']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
         #replace nans with null
-        print(data['identyfikator'])
+        #print(data['identyfikator'])
         return data
 
 
@@ -49,17 +53,36 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             self.id=0
             self.inwestor=""
+            self.failures=[]
             for index,row in data.iterrows():
+
+
                 numer_urzad = row['numer_urzad']
                 numer_decyzji_urzedu = row['numer_decyzji_urzedu']
                 numer_dzialki = row['numer_dzialki']
+                zamierz_bud = row['nazwa_zamierzenia_bud']
+                zam_budow = row['nazwa_zam_budowlanego']
+                nazwisko_inwestora = row['nazwisko_inwestora']
+                nazwa_inwestor = row['nazwa_inwestor']
+                #print(nazwisko_inwestora)
+                #print(nazwa_inwestor)
+                #print(numer_dzialki)
 
-                cursor.execute("SELECT * FROM polyserver_api_pozwolenia where numer_urzad = %s AND numer_decyzji_urzedu =%s AND numer_dzialki=%s",
-                    [numer_urzad, numer_decyzji_urzedu, numer_dzialki])
-                if(bool(cursor.fetchall())):
-                    print("record existing, skipping")
+                cursor.execute("SELECT * FROM polyserver_api_pozwolenia where numer_urzad = %s "
+                               "AND numer_decyzji_urzedu =%s"
+                               " AND (numer_dzialki=%s OR numer_dzialki ISNULL) "
+                               "AND (nazwa_zamierzenia_bud ISNULL OR nazwa_zamierzenia_bud=%s)"
+                               " AND (nazwa_zam_budowlanego ISNULL OR nazwa_zam_budowlanego=%s)"
+                               " AND (nazwisko_inwestora ISNULL OR nazwisko_inwestora=%s) "
+                               "AND (nazwa_inwestor ISNULL OR nazwa_inwestor=%s)",
+                    [numer_urzad, numer_decyzji_urzedu, numer_dzialki,zamierz_bud,zam_budow,nazwisko_inwestora,nazwa_inwestor])
+                #print(cursor.fetchone())
+                #print(bool(cursor.fetchone()))
+                if(cursor.fetchone()):
+                    print(str(index)+" record existing, skipping")
                 else:
-                    print("insert "+str(self.id))
+                    #print(row)
+                    print(str(index)+" insert "+str(self.id))
                     cursor.execute("SELECT id FROM polyserver_api_pozwolenia ORDER BY id DESC ")
                     idlist=cursor.fetchone()
                     if (idlist==None):
@@ -84,6 +107,8 @@ class Command(BaseCommand):
                         cursor.execute("INSERT INTO polyserver_api_pozwolenia VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof )
                     except:
                         print("something went wrong")
+                        self.failures.append(row)
+        return pd.DataFrame(self.failures)
     def int_to_4string(self,number):
         zeros=""
         if(type(number)==str):
