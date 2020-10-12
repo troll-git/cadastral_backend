@@ -10,6 +10,10 @@ from datetime import datetime
 import time
 
 MALOPOLSKA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_malopolskie.zip"
+PODKARPACIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_podkarpackie.zip"
+SLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_slaskie.zip"
+
+
 ZGLOSZENIA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_zgloszenia.zip"
 
 POZWOLENIA = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../data/pozwolenia'))
@@ -22,26 +26,27 @@ class Command(BaseCommand):
     def save_data(self, url, directory):
         self.stdout.write("downloading data")
         print(directory)
-        #wget.download(url, out=directory)#UNCOMMENT THIS FOR ACTUAL DOWNLOAD!
+        wget.download(url, out=directory)#UNCOMMENT THIS FOR ACTUAL DOWNLOAD!
         for file in os.listdir(directory):
             if file.endswith(".zip"):
                 print(file)
                 zipf = zipfile.ZipFile(directory + '/' + file)
-                #zipf.extractall(directory) # UNCOMMENT THIS FOR ACTUAL DOWNLOAD!
+                zipf.extractall(directory) # UNCOMMENT THIS FOR ACTUAL DOWNLOAD!
 
     def insert_data(self, directory):
         for file in os.listdir(directory):
             if file.endswith(".csv"):
                 data=self.process_file(directory + '/' + file)
                 self.failed=self.send_sql(data)
-                save_file_name=directory+'/'+file.split('.')[0]+"_failed.csv"
+                save_file_name=directory+'/failed/'+file.split('.')[0]+"_failed.csv"
                 #uncomment to save file
                 self.failed.to_csv(save_file_name,index=False,sep='#')
                 #print(self.failed)
 
     def process_file(self,file):
         print(file)
-        data=pd.read_csv(file,delimiter="#",nrows=50000,error_bad_lines=False)
+        #add nrows=nr of records
+        data=pd.read_csv(file,delimiter="#",nrows=2000, error_bad_lines=False)
         data = data.replace({np.nan: None})
         data['identyfikator']=data['jednosta_numer_ew']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
         #replace nans with null
@@ -83,13 +88,13 @@ class Command(BaseCommand):
                 else:
                     #print(row)
                     print(str(index)+" insert "+str(self.id))
-                    cursor.execute("SELECT id FROM polyserver_api_pozwolenia ORDER BY id DESC ")
+                    cursor.execute("SELECT MAX(id) FROM polyserver_api_pozwolenia AS maxid")
                     idlist=cursor.fetchone()
-                    if (idlist==None):
-                        #print("no records")
+                    #print("idmax:"+str(idlist))
+                    if (idlist[0]==None):
+                        print("no records")
                         self.id = 1
                     else:
-                        #print(idlist)
                         self.id=idlist[0]+1
                     if(row['nazwa_inwestor']):
                         self.inwestor = row['nazwa_inwestor'][:75]
@@ -127,7 +132,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         #self.save_data(MALOPOLSKA, POZWOLENIA)
+        #self.save_data(PODKARPACIE, POZWOLENIA)
+        #self.save_data(SLASKIE, POZWOLENIA)
+
         #self.save_data(ZGLOSZENIA,WNIOSKI)
-        #self.insert_data(POZWOLENIA)
+        self.insert_data(POZWOLENIA)
         self.merge_pozwolenia_parcels()
 
