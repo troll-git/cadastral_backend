@@ -3,10 +3,12 @@ from rest_framework import viewsets
 from .models import Dzialki
 from .models import Pozwolenia
 from .models import PozwoleniaGeom
+from .models import WnioskiGeom
 from .serializers import DzialkiSerializer
 from .serializers import PozwoleniaSerializer
 from .serializers import PozwoleniaGeomSerializer
 from .serializers import PozwoleniaGeomSerializerPoints
+from .serializers import WnioskiGeomSerializerPoints
 from django.contrib.gis.geos import Polygon
 from django.core.serializers import serialize
 from rest_framework.authentication import TokenAuthentication
@@ -79,4 +81,24 @@ class PozwolenieSingleViewSet(viewsets.ModelViewSet):
         if id is not None:
             queryset = PozwoleniaGeom.objects.filter(id=id)
             print(id)
+        return queryset
+
+class WnioskiGeomViewSet(viewsets.ModelViewSet):
+    queryset = WnioskiGeom.objects.all()
+    serializer_class = WnioskiGeomSerializerPoints
+
+    def createPoly(self,xmin,ymin,xmax,ymax):
+        poly = Polygon(((ymin,xmin ), (ymin, xmax), (ymax, xmax), (ymax, xmin), (ymin, xmin)))
+        return poly
+
+    def get_queryset(self):
+        bbox = self.request.query_params.get('bbox',None)
+        queryset = WnioskiGeom.objects.all()
+        bounds=bbox.split(',')
+        polygon = self.createPoly(float(bounds[0]),float(bounds[1]),float(bounds[2]),float(bounds[3]))
+        print (bbox.split(','))
+        #polygon = Polygon(((0.0, 0.0), (0.0, 50.0), (50.0, 50.0), (50.0, 0.0), (0.0, 0.0)))
+        if bbox is not None:
+            queryset = WnioskiGeom.objects.filter(point__bboverlaps=polygon)
+            print(bbox)
         return queryset

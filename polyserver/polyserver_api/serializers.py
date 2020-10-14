@@ -3,6 +3,7 @@ from django.core.serializers import serialize
 from .models import Dzialki
 from .models import Pozwolenia
 from .models import PozwoleniaGeom
+from .models import WnioskiGeom
 from django.contrib.auth.models import User
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
@@ -38,5 +39,11 @@ class PozwoleniaGeomSerializer(serializers.ModelSerializer):
 class PozwoleniaGeomSerializerPoints(GeoFeatureModelSerializer):
     class Meta:
         model= PozwoleniaGeom
+        fields = ['id']
+        geo_field = 'point'
+
+class WnioskiGeomSerializerPoints(GeoFeatureModelSerializer):
+    class Meta:
+        model= WnioskiGeom
         fields = ['id']
         geo_field = 'point'
