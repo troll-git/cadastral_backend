@@ -67,7 +67,7 @@ class Command(BaseCommand):
     def process_file_wnioski(self,file):
         print(file)
         #add nrows=nr of records
-        data=pd.read_csv(file,delimiter="#",nrows=3000, error_bad_lines=False)
+        data=pd.read_csv(file,delimiter="#",nrows=5000, error_bad_lines=False)
         data = data.replace({np.nan: None})
         data['identyfikator']=data['jednostki_numer']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
         #replace nans with null

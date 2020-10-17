@@ -42,6 +42,14 @@ class PozwoleniaGeomSerializerPoints(GeoFeatureModelSerializer):
         fields = ['id']
         geo_field = 'point'
 
+class WnioskiGeomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WnioskiGeom
+        fields= ['numer_ewidencyjny_system', 'numer_ewidencyjny_urzad', 'data_wplywu_wniosku_do_urzedu','nazwa_organu', 'wojewodztwo_objekt',
+        'obiekt_kod_pocztowy', 'miasto', 'terc', 'cecha', 'ulica', 'ulica_dalej', 'nr_domu', 'kategoria', 'nazwa_zam_budowlanego', 'rodzaj_zam_budowlanego',
+        'kubatura', 'stan', 'jednostki_numer', 'obreb_numer', 'numer_dzialki', 'identyfikator', 'numer_arkusza_dzialki', 'nazwisko_projektanta',
+        'imie_projektanta', 'projektant_numer_uprawnien', 'projektant_pozostali']
+
 class WnioskiGeomSerializerPoints(GeoFeatureModelSerializer):
     class Meta:
         model= WnioskiGeom

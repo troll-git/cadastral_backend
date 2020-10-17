@@ -9,6 +9,7 @@ from .serializers import PozwoleniaSerializer
 from .serializers import PozwoleniaGeomSerializer
 from .serializers import PozwoleniaGeomSerializerPoints
 from .serializers import WnioskiGeomSerializerPoints
+from .serializers import WnioskiGeomSerializer
 from django.contrib.gis.geos import Polygon
 from django.core.serializers import serialize
 from rest_framework.authentication import TokenAuthentication
@@ -101,4 +102,17 @@ class WnioskiGeomViewSet(viewsets.ModelViewSet):
         if bbox is not None:
             queryset = WnioskiGeom.objects.filter(point__bboverlaps=polygon)
             print(bbox)
+        return queryset
+
+class WniosekSingleViewSet(viewsets.ModelViewSet):
+    queryset = WnioskiGeom.objects.all()
+    serializer_class = WnioskiGeomSerializer
+
+    def get_queryset(self):
+        id = self.request.query_params.get('id',None)
+        queryset = WnioskiGeom.objects.all()
+
+        if id is not None:
+            queryset = WnioskiGeom.objects.filter(id=id)
+            print(id)
         return queryset
