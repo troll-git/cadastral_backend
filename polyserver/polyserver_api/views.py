@@ -3,6 +3,7 @@ from rest_framework import viewsets
 from .models import Dzialki
 from .models import Pozwolenia
 from .models import PozwoleniaGeom
+from .models import Wnioski
 from .models import WnioskiGeom
 from .serializers import DzialkiSerializer
 from .serializers import PozwoleniaSerializer
@@ -116,3 +117,12 @@ class WniosekSingleViewSet(viewsets.ModelViewSet):
             queryset = WnioskiGeom.objects.filter(id=id)
             print(id)
         return queryset
+
+class StatsViewSet(viewsets.ViewSet):
+    def list(self,request,format=None):
+        number_of_wnioski=WnioskiGeom.objects.all().count()
+        return Response({"wnioski":Wnioski.objects.all().count(),
+                        "pozwolenia":Pozwolenia.objects.all().count(),
+                        "wnioski geom":WnioskiGeom.objects.all().count(),
+                        "pozwolenia geom":PozwoleniaGeom.objects.all().count(),
+                        "dzialki":Dzialki.objects.all().count()})
