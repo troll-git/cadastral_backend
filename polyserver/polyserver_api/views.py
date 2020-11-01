@@ -5,12 +5,14 @@ from .models import Pozwolenia
 from .models import PozwoleniaGeom
 from .models import Wnioski
 from .models import WnioskiGeom
+from .models import Update
 from .serializers import DzialkiSerializer
 from .serializers import PozwoleniaSerializer
 from .serializers import PozwoleniaGeomSerializer
 from .serializers import PozwoleniaGeomSerializerPoints
 from .serializers import WnioskiGeomSerializerPoints
 from .serializers import WnioskiGeomSerializer
+from .serializers import UpdateSerializer
 from django.contrib.gis.geos import Polygon
 from django.core.serializers import serialize
 from rest_framework.authentication import TokenAuthentication
@@ -19,6 +21,7 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from django.db.models import Avg, Max, Min, Sum
 # Create your views here.
 
 
@@ -123,6 +126,16 @@ class StatsViewSet(viewsets.ViewSet):
         number_of_wnioski=WnioskiGeom.objects.all().count()
         return Response({"wnioski":Wnioski.objects.all().count(),
                         "pozwolenia":Pozwolenia.objects.all().count(),
-                        "wnioski geom":WnioskiGeom.objects.all().count(),
-                        "pozwolenia geom":PozwoleniaGeom.objects.all().count(),
+                        "wnioski_geom":WnioskiGeom.objects.all().count(),
+                        "pozwolenia_geom":PozwoleniaGeom.objects.all().count(),
                         "dzialki":Dzialki.objects.all().count()})
+
+class UpdateViewSet(viewsets.ModelViewSet):
+    queryset = Update.objects.all()
+    serializer_class = UpdateSerializer
+    
+    def get_queryset(self):
+        max_id=Update.objects.latest('id').id
+        print(max_id)
+        queryset = Update.objects.filter(id=max_id)
+        return queryset

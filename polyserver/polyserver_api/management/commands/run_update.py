@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 import wget
 import os
+import shutil
 import zipfile
 import pandas as pd
 import numpy as np
@@ -12,6 +13,7 @@ import time
 MALOPOLSKA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_malopolskie.zip"
 PODKARPACIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_podkarpackie.zip"
 SLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_slaskie.zip"
+DOLNOSLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_dolnoslaskie.zip"
 
 
 ZGLOSZENIA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_zgloszenia.zip"
@@ -23,41 +25,69 @@ WNIOSKI = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../.
 class Command(BaseCommand):
     help = 'update the database'
 
+    def clear_dir(self,directory):
+        try:
+            shutil.rmtree(directory)
+            os.mkdir(directory)
+            os.mkdir(directory)
+            
+        except:
+            print("directory empty")
+            os.mkdir(directory+'/failed')
+
+               
+        
+
     def save_data(self, url, directory):
         self.stdout.write("downloading data")
         print(directory)
         wget.download(url, out=directory)#UNCOMMENT THIS FOR ACTUAL DOWNLOAD!
+    
+    def unzip_folder(self,directory):
         for file in os.listdir(directory):
             if file.endswith(".zip"):
                 print(file)
                 zipf = zipfile.ZipFile(directory + '/' + file)
-                zipf.extractall(directory) # UNCOMMENT THIS FOR ACTUAL DOWNLOAD!
+                zipf.extractall(directory) # UNCOMMENT THIS FOR ACTUAL UNZIP!
 
     def insert_data_pozwolenia(self, directory):
+        skipped=0
+        failed=0
+        updated=0
         for file in os.listdir(directory):
             if file.endswith(".csv"):
                 data=self.process_file(directory + '/' + file)
-                self.failed=self.send_sql(data)
+                [self.failures,skip,fail,update]=self.send_sql(data)
                 save_file_name=directory+'/failed/'+file.split('.')[0]+"_failed.csv"
                 #uncomment to save file
-                self.failed.to_csv(save_file_name,index=False,sep='#')
-                #print(self.failed)
+                skipped =skip+skipped
+                failed +=fail
+                updated +=update
+                self.failures.to_csv(save_file_name,index=False,sep='#')
+        return [updated,skipped,failed]
 
     def insert_data_wnioski(self, directory):
+        skipped=0
+        failed=0
+        updated=0
         for file in os.listdir(directory):
             if file.endswith(".csv"):
                 data=self.process_file_wnioski(directory + '/' + file)
-                print(data)
-                self.failed=self.send_sql_wnioski(data)
+                [self.failures,skip,fail,update]=self.send_sql_wnioski(data)
                 save_file_name=directory+'/failed/'+file.split('.')[0]+"_failed.csv"
+                skipped =skip+skipped
+                failed +=fail
+                updated +=update
                 #uncomment to save file
-                #self.failed.to_csv(save_file_name,index=False,sep='#')
+                
+                self.failures.to_csv(save_file_name,index=False,sep='#')
                 #print(self.failed)
+        return [updated,skipped,failed]
 
     def process_file(self,file):
         print(file)
         #add nrows=nr of records
-        data=pd.read_csv(file,delimiter="#", error_bad_lines=False)
+        data=pd.read_csv(file,delimiter="#",nrows=30, error_bad_lines=False)
         data = data.replace({np.nan: None})
         data['identyfikator']=data['jednosta_numer_ew']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
         #replace nans with null
@@ -67,7 +97,7 @@ class Command(BaseCommand):
     def process_file_wnioski(self,file):
         print(file)
         #add nrows=nr of records
-        data=pd.read_csv(file,delimiter="#",nrows=5000, error_bad_lines=False)
+        data=pd.read_csv(file,delimiter="#",nrows=50, error_bad_lines=False)
         data = data.replace({np.nan: None})
         data['identyfikator']=data['jednostki_numer']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
         #replace nans with null
@@ -80,6 +110,11 @@ class Command(BaseCommand):
             self.id=0
             self.inwestor=""
             self.failures=[]
+
+            #for update data
+            self.failed=0
+            self.skipped=0
+            self.updated=0
             for index,row in data.iterrows():
 
 
@@ -90,9 +125,6 @@ class Command(BaseCommand):
                 zam_budow = row['nazwa_zam_budowlanego']
                 nazwisko_inwestora = row['nazwisko_inwestora']
                 nazwa_inwestor = row['nazwa_inwestor']
-                #print(nazwisko_inwestora)
-                #print(nazwa_inwestor)
-                #print(numer_dzialki)
 
                 cursor.execute("SELECT * FROM polyserver_api_pozwolenia where numer_urzad = %s "
                                "AND numer_decyzji_urzedu =%s"
@@ -102,10 +134,9 @@ class Command(BaseCommand):
                                " AND (nazwisko_inwestora ISNULL OR nazwisko_inwestora=%s) "
                                "AND (nazwa_inwestor ISNULL OR nazwa_inwestor=%s)",
                     [numer_urzad, numer_decyzji_urzedu, numer_dzialki,zamierz_bud,zam_budow,nazwisko_inwestora,nazwa_inwestor])
-                #print(cursor.fetchone())
-                #print(bool(cursor.fetchone()))
                 if(cursor.fetchone()):
                     print(str(index)+" record existing, skipping")
+                    self.skipped +=1
                 else:
                     #print(row)
                     print(str(index)+" insert "+str(self.id))
@@ -129,16 +160,21 @@ class Command(BaseCommand):
                             row['stara_numeracja_obreb_z_wnioskiu'],row['stara_numeracja_dzialka_z_wniosku'],datetime.now()]
                     #temporary solution
                     try:
-                        pass
                         cursor.execute("INSERT INTO polyserver_api_pozwolenia VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof )
+                        self.updated +=1
                     except:
                         print("something went wrong")
                         self.failures.append(row)
-        return pd.DataFrame(self.failures)
+                        self.failed +=1
+        return [pd.DataFrame(self.failures),self.skipped,self.failed,self.updated]
     def send_sql_wnioski(self,data):
         with connection.cursor() as cursor:
             self.id=0
             self.failures=[]
+            #for update data
+            self.failed=0
+            self.skipped=0
+            self.updated=0
             for index,row in data.iterrows():
 
 
@@ -154,6 +190,7 @@ class Command(BaseCommand):
                 #print(bool(cursor.fetchone()))
                 if(cursor.fetchone()):
                     print(str(index)+" record existing, skipping")
+                    self.skipped +=1
                 else:
                     #print(row)
                     print(str(index)+" insert "+str(self.id))
@@ -177,10 +214,12 @@ class Command(BaseCommand):
                         cursor.execute(
                             "INSERT INTO polyserver_api_wnioski VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                             listof)
+                        self.updated +=1
                     except:
                         print("something went wrong")
+                        self.failed +=1
                         self.failures.append(row)
-        return pd.DataFrame(self.failures)
+        return [pd.DataFrame(self.failures),self.skipped,self.failed,self.updated]
     def int_to_4string(self,number):
         zeros=""
         if(type(number)==str):
@@ -205,15 +244,37 @@ class Command(BaseCommand):
             cursor.execute("UPDATE polyserver_api_wnioskigeom SET point = ST_PointOnSurface(mpoly)")
         print("Table updated, time elapsed: "+str(round(((time.process_time() - start) * 1000), 2))+" s.")
 
+    def update_data(self,pozwolenia_update,wnioski_update):
+        print(pozwolenia_update)
+        print(wnioski_update)
+        listof=[datetime.now(),pozwolenia_update[0],pozwolenia_update[1],pozwolenia_update[2],wnioski_update[0],wnioski_update[1],wnioski_update[2]]
+        with connection.cursor() as cursor:
+            #cursor.execute("SELECT nextval 'polyserver_api_update."id"'")
+
+            cursor.execute("INSERT INTO polyserver_api_update VALUES (DEFAULT,%s,%s,%s,%s,%s,%s,%s)",listof)
+
+
     def handle(self, *args, **kwargs):
-        #self.save_data(MALOPOLSKA, POZWOLENIA)
-        #self.save_data(PODKARPACIE, POZWOLENIA)
-        #self.save_data(SLASKIE, POZWOLENIA)
-        #self.save_data(ZGLOSZENIA,WNIOSKI)
 
-        #self.insert_data_pozwolenia(POZWOLENIA)
-        self.insert_data_wnioski(WNIOSKI)
+        #clear directories
+        
+        
+        #download pozwolenia data from GUNB
+        '''self.clear_dir(POZWOLENIA)
+        self.save_data(MALOPOLSKA, POZWOLENIA)
+        self.save_data(PODKARPACIE, POZWOLENIA)
+        self.save_data(SLASKIE, POZWOLENIA)
+        self.save_data(DOLNOSLASKIE, POZWOLENIA)
+        self.unzip_folder(POZWOLENIA)
 
-        #self.merge_pozwolenia_parcels()
+        #download wnioski
+        self.clear_dir(WNIOSKI)
+        self.save_data(ZGLOSZENIA,WNIOSKI)
+        self.unzip_folder(WNIOSKI)'''
+
+
+
+        self.update_data(self.insert_data_pozwolenia(POZWOLENIA),self.insert_data_wnioski(WNIOSKI))
+        self.merge_pozwolenia_parcels()
         self.merge_wnioski_parcels()
 

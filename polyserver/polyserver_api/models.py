@@ -149,4 +149,12 @@ class WnioskiGeom(models.Model):
     mpoly = models.MultiPolygonField(null=True)
     point = models.PointField(null=True)
 
+class Update(models.Model):
+    updated_at = models.DateField(null=True)
+    total_updated_pozwolenia = models.IntegerField(null=True)
+    total_skipped_pozwolenia = models.IntegerField(null=True)
+    total_failed_pozwolenia = models.IntegerField(null=True)
+    total_updated_wnioski = models.IntegerField(null=True)
+    total_skipped_wnioski = models.IntegerField(null=True)
+    total_failed_wnioski = models.IntegerField(null=True)
 

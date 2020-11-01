@@ -9,6 +9,7 @@ from .views import PozwolenieSingleViewSet
 from .views import WnioskiGeomViewSet
 from .views import WniosekSingleViewSet
 from .views import StatsViewSet
+from .views import UpdateViewSet
 
 router = routers.DefaultRouter()
 router.register('dzialki',DzialkiViewSet)
@@ -18,6 +19,7 @@ router.register('pozwolenie',PozwolenieSingleViewSet)
 router.register('wnioski_geom',WnioskiGeomViewSet)
 router.register('wniosek',WniosekSingleViewSet)
 router.register('stats',StatsViewSet,basename='stats')
+router.register('update', UpdateViewSet)
 
 
 
