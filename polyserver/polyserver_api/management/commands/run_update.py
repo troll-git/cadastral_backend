@@ -14,6 +14,7 @@ MALOPOLSKA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_malopolskie.z
 PODKARPACIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_podkarpackie.zip"
 SLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_slaskie.zip"
 DOLNOSLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_dolnoslaskie.zip"
+OPOLSKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_opolskie.zip"
 
 
 ZGLOSZENIA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_zgloszenia.zip"
@@ -87,7 +88,7 @@ class Command(BaseCommand):
     def process_file(self,file):
         print(file)
         #add nrows=nr of records
-        data=pd.read_csv(file,delimiter="#",nrows=30, error_bad_lines=False)
+        data=pd.read_csv(file,delimiter="#",nrows=3000, error_bad_lines=False)
         data = data.replace({np.nan: None})
         data['identyfikator']=data['jednosta_numer_ew']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
         #replace nans with null
@@ -97,7 +98,7 @@ class Command(BaseCommand):
     def process_file_wnioski(self,file):
         print(file)
         #add nrows=nr of records
-        data=pd.read_csv(file,delimiter="#",nrows=50, error_bad_lines=False)
+        data=pd.read_csv(file,delimiter="#",nrows=5000, error_bad_lines=False)
         data = data.replace({np.nan: None})
         data['identyfikator']=data['jednostki_numer']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
         #replace nans with null
@@ -260,17 +261,18 @@ class Command(BaseCommand):
         
         
         #download pozwolenia data from GUNB
-        '''self.clear_dir(POZWOLENIA)
+        self.clear_dir(POZWOLENIA)
         self.save_data(MALOPOLSKA, POZWOLENIA)
         self.save_data(PODKARPACIE, POZWOLENIA)
         self.save_data(SLASKIE, POZWOLENIA)
         self.save_data(DOLNOSLASKIE, POZWOLENIA)
+        self.save_data(OPOLSKIE,POZWOLENIA)
         self.unzip_folder(POZWOLENIA)
 
         #download wnioski
         self.clear_dir(WNIOSKI)
         self.save_data(ZGLOSZENIA,WNIOSKI)
-        self.unzip_folder(WNIOSKI)'''
+        self.unzip_folder(WNIOSKI)
 
 
 

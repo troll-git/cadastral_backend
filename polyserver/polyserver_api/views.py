@@ -14,6 +14,7 @@ from .serializers import WnioskiGeomSerializerPoints
 from .serializers import WnioskiGeomSerializer
 from .serializers import UpdateSerializer
 from django.contrib.gis.geos import Polygon
+from datetime import datetime
 from django.core.serializers import serialize
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -22,6 +23,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.db.models import Avg, Max, Min, Sum
+from django.db.models import Q
 # Create your views here.
 
 
@@ -65,14 +67,25 @@ class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         bbox = self.request.query_params.get('bbox',None)
+        start_date = self.request.query_params.get('start_date',None)
+        end_date = self.request.query_params.get('end_date', None)
+        category = self.request.query_params.get('category',None)
+        investor = self.request.query_params.get('investor',None)
+        if start_date == "undefined" or start_date=="" or start_date==None:
+            start_date="2000-01-01"
+        if end_date == "undefined" or end_date==""or end_date==None:
+            end_date=datetime.now().date()
         queryset = PozwoleniaGeom.objects.all()
         bounds=bbox.split(',')
         polygon = self.createPoly(float(bounds[0]),float(bounds[1]),float(bounds[2]),float(bounds[3]))
         print (bbox.split(','))
-        #polygon = Polygon(((0.0, 0.0), (0.0, 50.0), (50.0, 50.0), (50.0, 0.0), (0.0, 0.0)))
-        if bbox is not None:
-            queryset = PozwoleniaGeom.objects.filter(point__bboverlaps=polygon)
-            print(bbox)
+        if bbox is not None :
+            print("notnone")
+            queryset = PozwoleniaGeom.objects.filter(point__bboverlaps=polygon).filter(data_wydania_decyzji__gte=start_date).filter(data_wydania_decyzji__lt=end_date)
+        if category != None and category !="undefined" and category !="":
+            queryset=queryset.filter(kategoria=category)
+        if investor != None and investor !="undefined" and investor !="":
+            queryset=queryset.filter(Q(nazwisko_inwestora__icontains=investor)|Q(imie_inwestora__icontains=investor)|Q(nazwa_inwestor__icontains=investor))
         return queryset
 
 class PozwolenieSingleViewSet(viewsets.ModelViewSet):
@@ -98,14 +111,21 @@ class WnioskiGeomViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         bbox = self.request.query_params.get('bbox',None)
+        start_date = self.request.query_params.get('start_date',None)
+        end_date = self.request.query_params.get('end_date', None)
+        category = self.request.query_params.get('category',None)
+        if start_date == "undefined" or start_date=="" or start_date==None:
+            start_date="2000-01-01"
+        if end_date == "undefined" or end_date==""or end_date==None:
+            end_date=datetime.now().date()
         queryset = WnioskiGeom.objects.all()
         bounds=bbox.split(',')
         polygon = self.createPoly(float(bounds[0]),float(bounds[1]),float(bounds[2]),float(bounds[3]))
         print (bbox.split(','))
-        #polygon = Polygon(((0.0, 0.0), (0.0, 50.0), (50.0, 50.0), (50.0, 0.0), (0.0, 0.0)))
         if bbox is not None:
-            queryset = WnioskiGeom.objects.filter(point__bboverlaps=polygon)
-            print(bbox)
+            queryset = WnioskiGeom.objects.filter(point__bboverlaps=polygon).filter(data_wplywu_wniosku_do_urzedu__gte=start_date).filter(data_wplywu_wniosku_do_urzedu__lt=end_date)
+        if category != None and category !="undefined" and category !="":
+            queryset=queryset.filter(kategoria=category)
         return queryset
 
 class WniosekSingleViewSet(viewsets.ModelViewSet):
