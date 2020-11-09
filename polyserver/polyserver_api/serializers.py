@@ -5,6 +5,8 @@ from .models import Pozwolenia
 from .models import PozwoleniaGeom
 from .models import WnioskiGeom
 from .models import Update
+from .models import IpData
+from .models import Contact
 from django.contrib.auth.models import User
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
@@ -61,3 +63,14 @@ class UpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model=Update
         fields = ['updated_at','total_updated_pozwolenia','total_skipped_pozwolenia','total_failed_pozwolenia','total_updated_wnioski','total_skipped_wnioski','total_failed_wnioski']
+
+class IpDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=IpData
+        fields = ['created_at','country_code' , 'country_name', 'city' ,'postal', 'latitude', 'longitude','IPv4','state']
+        #fields = ['city']
+
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Contact
+        fields = ['created_at','name','email','message']

@@ -1,11 +1,14 @@
 from django.shortcuts import render
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from .models import Dzialki
 from .models import Pozwolenia
 from .models import PozwoleniaGeom
 from .models import Wnioski
 from .models import WnioskiGeom
 from .models import Update
+from .models import IpData
+from .models import Contact
 from .serializers import DzialkiSerializer
 from .serializers import PozwoleniaSerializer
 from .serializers import PozwoleniaGeomSerializer
@@ -13,6 +16,8 @@ from .serializers import PozwoleniaGeomSerializerPoints
 from .serializers import WnioskiGeomSerializerPoints
 from .serializers import WnioskiGeomSerializer
 from .serializers import UpdateSerializer
+from .serializers import IpDataSerializer
+from .serializers import ContactSerializer
 from django.contrib.gis.geos import Polygon
 from datetime import datetime
 from django.core.serializers import serialize
@@ -24,6 +29,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.db.models import Avg, Max, Min, Sum
 from django.db.models import Q
+from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 # Create your views here.
 
 
@@ -158,4 +165,23 @@ class UpdateViewSet(viewsets.ModelViewSet):
         max_id=Update.objects.latest('id').id
         print(max_id)
         queryset = Update.objects.filter(id=max_id)
+        return queryset
+
+class IpDataViewSet(viewsets.ModelViewSet):
+    queryset = IpData.objects.all()
+    serializer_class = IpDataSerializer
+
+    #@action(detail=False,methods=['POST'])
+    #def sendIp(self,request,pk,format=None):
+    #    print(request.data)
+    #    resp={'mess':"it is"}
+    #    return Response(resp,status=status.HTTP_200_OK)
+
+
+class ContactViewSet(viewsets.ModelViewSet):
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
+
+    def get_queryset(self):
+        queryset = Contact.objects.filter(id=1)
         return queryset

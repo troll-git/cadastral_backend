@@ -1,4 +1,5 @@
 from django.contrib.gis.db import models
+from django.db.models import DateTimeField
 
 # Create your models here.
 class Dzialki(models.Model):
@@ -158,3 +159,25 @@ class Update(models.Model):
     total_skipped_wnioski = models.IntegerField(null=True)
     total_failed_wnioski = models.IntegerField(null=True)
 
+class DateTimeWithoutTZField(DateTimeField):
+    def db_type(self, connection):
+        return 'timestamp'
+
+class IpData(models.Model):
+    created_at = DateTimeWithoutTZField(null=True)
+    country_code = models.CharField(max_length=50, null=True)
+    country_name = models.CharField(max_length=50, null=True)
+    city = models.CharField(max_length=50, null=True)
+    postal = models.CharField(max_length=50, null=True)
+    latitude = models.CharField(max_length=50, null=True)
+    longitude = models.CharField(max_length=50, null=True)
+    IPv4 = models.CharField(max_length=50, null=True)
+    state = models.CharField(max_length=50, null=True)
+
+
+class Contact(models.Model):
+    created_at = DateTimeWithoutTZField(null=True)
+    name = models.CharField(max_length=50, null=True)
+    email = models.CharField(max_length=50, null=True)
+    message = models.CharField(max_length=2000, null=True)
+    

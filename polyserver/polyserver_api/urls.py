@@ -10,6 +10,8 @@ from .views import WnioskiGeomViewSet
 from .views import WniosekSingleViewSet
 from .views import StatsViewSet
 from .views import UpdateViewSet
+from .views import IpDataViewSet
+from .views import ContactViewSet
 
 router = routers.DefaultRouter()
 router.register('dzialki',DzialkiViewSet)
@@ -20,7 +22,8 @@ router.register('wnioski_geom',WnioskiGeomViewSet)
 router.register('wniosek',WniosekSingleViewSet)
 router.register('stats',StatsViewSet,basename='stats')
 router.register('update', UpdateViewSet)
-
+router.register('ipdata',IpDataViewSet)
+router.register('contact',ContactViewSet)
 
 
 #router.register('users',UserViewSet)
