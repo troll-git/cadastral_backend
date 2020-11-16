@@ -31,6 +31,10 @@ from django.db.models import Avg, Max, Min, Sum
 from django.db.models import Q
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+
 # Create your views here.
 
 
@@ -72,7 +76,9 @@ class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
         poly = Polygon(((ymin,xmin ), (ymin, xmax), (ymax, xmax), (ymax, xmin), (ymin, xmin)))
         return poly
 
-    def get_queryset(self):
+    @method_decorator(cache_page(60*60*2))
+    @method_decorator(vary_on_cookie)
+    def get(self,request,format=None):
         bbox = self.request.query_params.get('bbox',None)
         start_date = self.request.query_params.get('start_date',None)
         end_date = self.request.query_params.get('end_date', None)

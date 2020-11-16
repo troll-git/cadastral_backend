@@ -267,19 +267,18 @@ class Command(BaseCommand):
         
         
         #download pozwolenia data from GUNB
-        '''self.clear_dir(POZWOLENIA)
+        self.clear_dir(POZWOLENIA)
         self.save_data(MALOPOLSKA, POZWOLENIA)
         self.save_data(PODKARPACIE, POZWOLENIA)
-        self.save_data(SLASKIE, POZWOLENIA)
-        self.save_data(DOLNOSLASKIE, POZWOLENIA)
-        self.save_data(OPOLSKIE,POZWOLENIA)
-        self.unzip_folder(POZWOLENIA)
+        #self.save_data(SLASKIE, POZWOLENIA)
+        #self.save_data(DOLNOSLASKIE, POZWOLENIA)
+        #self.save_data(OPOLSKIE,POZWOLENIA)
+        #self.unzip_folder(POZWOLENIA)
 
         #download wnioski
         self.clear_dir(WNIOSKI)
         self.save_data(ZGLOSZENIA,WNIOSKI)
-        self.unzip_folder(WNIOSKI)'''
-
+        self.unzip_folder(WNIOSKI)
 
 
         self.update_data(self.insert_data_pozwolenia(POZWOLENIA),self.insert_data_wnioski(WNIOSKI))
