@@ -25,7 +25,7 @@ SECRET_KEY = '*ap2req-ufp84f2$74$vkw#nx=v2f%y8t7ht2b15_bj5x=lrst'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['159.65.197.227']
 
 
 # Application definition
@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django.contrib.gis',
     'polyserver_api',
-    'corsheaders'
+    'corsheaders',
+    'django_redis'
 
 ]
 
@@ -59,7 +60,7 @@ MIDDLEWARE = [
 
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = (
-       'http://localhost:3000',
+       'http://159.65.197.227:3000',
 )
 
 ROOT_URLCONF = 'polyserver.urls'
@@ -91,8 +92,9 @@ DATABASES = {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'cadastral',
         'USER':'postgres',
-        'PASSWORD':'postgres',
-        'HOST':'localhost',
+        'PASSWORD':'gunt1234',
+        'HOST':'159.65.197.227',
+        'PORT':'5433'
     }
 }
 
@@ -148,3 +150,5 @@ CACHES = {
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
+CACHE_TTL = 60 * 1
+

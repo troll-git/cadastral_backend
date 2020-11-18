@@ -44,6 +44,7 @@ class PozwoleniaGeomSerializerPoints(GeoFeatureModelSerializer):
         model= PozwoleniaGeom
         fields = ['id']
         geo_field = 'point'
+        read_only_fields = fields
 
 class WnioskiGeomSerializer(serializers.ModelSerializer):
     class Meta:

@@ -34,7 +34,7 @@ from rest_framework.views import APIView
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
-
+from time import perf_counter
 # Create your views here.
 
 
@@ -67,7 +67,6 @@ class PozwoleniaViewSet(viewsets.ModelViewSet):
     #filter_backends = [DjangoFilterBackend]
     #filterset_fields = ['name']
 
-
 class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
     queryset = PozwoleniaGeom.objects.all()
     serializer_class = PozwoleniaGeomSerializerPoints
@@ -76,9 +75,11 @@ class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
         poly = Polygon(((ymin,xmin ), (ymin, xmax), (ymax, xmax), (ymax, xmin), (ymin, xmin)))
         return poly
 
-    @method_decorator(cache_page(60*60*2))
-    @method_decorator(vary_on_cookie)
-    def get(self,request,format=None):
+    #@method_decorator(cache_page(60*60*2))
+    #@method_decorator(vary_on_cookie)
+    #@method_decorator(cache_page(60*60))
+    def get_queryset(self):
+        t13_start = perf_counter()
         bbox = self.request.query_params.get('bbox',None)
         start_date = self.request.query_params.get('start_date',None)
         end_date = self.request.query_params.get('end_date', None)
@@ -90,15 +91,27 @@ class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
             end_date=datetime.now().date()
         queryset = PozwoleniaGeom.objects.all()
         bounds=bbox.split(',')
+        t1_start = perf_counter()  
         polygon = self.createPoly(float(bounds[0]),float(bounds[1]),float(bounds[2]),float(bounds[3]))
-        print (bbox.split(','))
+        t1_stop = perf_counter() 
+        print("Elapsed time for create_poly:", t1_stop-t1_start) 
+        t1_start = perf_counter()
         if bbox is not None :
-            print("notnone")
             queryset = PozwoleniaGeom.objects.filter(point__bboverlaps=polygon).filter(data_wydania_decyzji__gte=start_date).filter(data_wydania_decyzji__lt=end_date)
+        t1_stop = perf_counter() 
+        print("Elapsed time for polygon & date filtering:", t1_stop-t1_start) 
+        t1_start = perf_counter()
         if category != None and category !="undefined" and category !="":
             queryset=queryset.filter(kategoria=category)
+        t1_stop = perf_counter()
+        print("Elapsed time for category filtering:", t1_stop-t1_start)
+        t1_start = perf_counter()
         if investor != None and investor !="undefined" and investor !="":
             queryset=queryset.filter(Q(nazwisko_inwestora__icontains=investor)|Q(imie_inwestora__icontains=investor)|Q(nazwa_inwestor__icontains=investor))
+        t1_stop = perf_counter()
+        print("Elapsed time for investor filtering:", t1_stop-t1_start) 
+        t13_stop = perf_counter()
+        print("Elapsed time for whole process:", t13_stop-t13_start) 
         return queryset
 
 class PozwolenieSingleViewSet(viewsets.ModelViewSet):
@@ -155,6 +168,7 @@ class WniosekSingleViewSet(viewsets.ModelViewSet):
         return queryset
 
 class StatsViewSet(viewsets.ViewSet):
+    @method_decorator(cache_page(60*60*2))
     def list(self,request,format=None):
         number_of_wnioski=WnioskiGeom.objects.all().count()
         return Response({"wnioski":Wnioski.objects.all().count(),
