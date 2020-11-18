@@ -9,6 +9,7 @@ import numpy as np
 from django.db import connection
 from datetime import datetime
 import time
+import csv
 
 MALOPOLSKA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_malopolskie.zip"
 PODKARPACIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_podkarpackie.zip"
@@ -22,49 +23,31 @@ ZGLOSZENIA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_zgloszenia.zi
 POZWOLENIA = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../data/pozwolenia'))
 WNIOSKI = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../data/wnioski'))
 
-MIGRATE_POZWOLENIA_SQL="""INSERT INTO public.polyserver_api_pozwolenia(numer_urzad,nazwa_organu,adres_organu,data_wplywu_wniosku,numer_decyzji_urzedu,
-data_wydania_decyzji,nazwisko_inwestora,imie_inwestora,nazwa_inwestor,wojewodztwo,miasto,terc,cecha,ulica,ulica_dalej,nr_domu,rodzaj_inwestycji,kategoria,nazwa_zamierzenia_bud,nazwa_zam_budowlanego,
-kubatura,projektant_nazwisko,projektant_imie,projektant_numer_uprawnien,jednostka_numer_ew,obreb_numer,
+REMOVE_DUPLICATES_POZWOLENIA="""DELETE FROM polyserver_api_pozwolenia
+WHERE id IN
+    (SELECT id
+    FROM 
+        (SELECT id,
+         ROW_NUMBER() OVER( PARTITION BY numer_urzad,nazwa_organu,adres_organu,data_wplywu_wniosku,numer_decyzji_urzedu,
+data_wydania_decyzji,nazwisko_inwestora,imie_inwestora,nazwa_inwestor,wojewodztwo,miasto,cecha,ulica,ulica_dalej,nr_domu,rodzaj_inwestycji,kategoria,nazwa_zamierzenia_bud,nazwa_zam_budowlanego,
+kubatura,projektant_nazwisko,projektant_imie,projektant_numer_uprawnien,jednostka_numer_ew,
 numer_dzialki,identyfikator,numer_arkusza_dzialki,jednostka_stara_numeracja_z_wniosku,stara_numeracja_obreb_z_wniosku,
-stara_numeracja_dzialka_z_wniosku,created_at)
-SELECT numer_urzad,nazwa_organu,adres_organu,data_wplywu_wniosku,numer_decyzji_urzedu,data_wydania_decyzji,nazwisko_inwestora,imie_inwestora,
-nazwa_inwestor,wojewodztwo,miasto,terc,cecha,ulica,ulica_dalej,nr_domu,rodzaj_inwestycji,kategoria,nazwa_zamierzenia_bud,nazwa_zam_budowlanego,
-kubatura,projektant_nazwisko,projektant_imie,projektant_numer_uprawnien,jednostka_numer_ew,obreb_numer,
-numer_dzialki,identyfikator,numer_arkusza_dzialki,jednostka_stara_numeracja_z_wniosku,stara_numeracja_obreb_z_wniosku,
-stara_numeracja_dzialka_z_wniosku,created_at FROM public.polyserver_api_pozwoleniaupload WHERE NOT EXISTS(SELECT * FROM public.polyserver_api_pozwolenia 
-WHERE (public.polyserver_api_pozwoleniaupload.numer_urzad IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.numer_urzad and 
-public.polyserver_api_pozwoleniaupload.nazwa_organu IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.nazwa_organu and 
-public.polyserver_api_pozwoleniaupload.data_wplywu_wniosku IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.data_wplywu_wniosku and 
-public.polyserver_api_pozwoleniaupload.numer_decyzji_urzedu IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.numer_decyzji_urzedu and 
-public.polyserver_api_pozwoleniaupload.data_wydania_decyzji IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.data_wydania_decyzji and 
-public.polyserver_api_pozwoleniaupload.nazwisko_inwestora IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.nazwisko_inwestora and 
-public.polyserver_api_pozwoleniaupload.imie_inwestora IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.imie_inwestora and 
-public.polyserver_api_pozwoleniaupload.nazwa_inwestor IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.nazwa_inwestor and 
-public.polyserver_api_pozwoleniaupload.nazwa_zamierzenia_bud IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.nazwa_zamierzenia_bud and 
-public.polyserver_api_pozwoleniaupload.nazwa_zam_budowlanego IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.nazwa_zam_budowlanego and 
-public.polyserver_api_pozwoleniaupload.identyfikator IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.identyfikator and 
-public.polyserver_api_pozwoleniaupload.stara_numeracja_dzialka_z_wniosku IS NOT DISTINCT FROM public.polyserver_api_pozwolenia.stara_numeracja_dzialka_z_wniosku))"""
+stara_numeracja_dzialka_z_wniosku
+        ORDER BY  id ) AS row_num
+        FROM polyserver_api_pozwolenia ) t
+        WHERE t.row_num > 1 );"""
 
-MIGRATE_WNIOSKI_SQL="""INSERT INTO public.polyserver_api_wnioski(numer_ewidencyjny_system,numer_ewidencyjny_urzad,data_wplywu_wniosku_do_urzedu,nazwa_organu,
-										 wojewodztwo_objekt,obiekt_kod_pocztowy,miasto,terc,cecha,ulica,ulica_dalej,nr_domu,kategoria,
-										 nazwa_zam_budowlanego,rodzaj_zam_budowlanego,kubatura,stan,jednostki_numer,obreb_numer,numer_dzialki,
-										 identyfikator,numer_arkusza_dzialki,nazwisko_projektanta,imie_projektanta,projektant_numer_uprawnien,
-										 projektant_pozostali,created_at)
-SELECT numer_ewidencyjny_system,numer_ewidencyjny_urzad,data_wplywu_wniosku_do_urzedu,nazwa_organu,
-										 wojewodztwo_objekt,obiekt_kod_pocztowy,miasto,terc,cecha,ulica,ulica_dalej,nr_domu,kategoria,
-										 nazwa_zam_budowlanego,rodzaj_zam_budowlanego,kubatura,stan,jednostki_numer,obreb_numer,numer_dzialki,
-										 identyfikator,numer_arkusza_dzialki,nazwisko_projektanta,imie_projektanta,projektant_numer_uprawnien,
-										 projektant_pozostali,created_at
-FROM public.polyserver_api_wnioskiupload
-WHERE NOT EXISTS(SELECT * 
-                 FROM public.polyserver_api_wnioski 
-                 WHERE (public.polyserver_api_wnioskiupload.numer_ewidencyjny_system IS NOT DISTINCT FROM public.polyserver_api_wnioski.numer_ewidencyjny_system and
-					public.polyserver_api_wnioskiupload.numer_ewidencyjny_urzad IS NOT DISTINCT FROM public.polyserver_api_wnioski.numer_ewidencyjny_urzad and
-					public.polyserver_api_wnioskiupload.nazwa_zam_budowlanego IS NOT DISTINCT FROM public.polyserver_api_wnioski.nazwa_zam_budowlanego and
-					public.polyserver_api_wnioskiupload.rodzaj_zam_budowlanego IS NOT DISTINCT FROM public.polyserver_api_wnioski.rodzaj_zam_budowlanego and
-					public.polyserver_api_wnioskiupload.identyfikator IS NOT DISTINCT FROM public.polyserver_api_wnioski.identyfikator and
-					public.polyserver_api_wnioskiupload.projektant_numer_uprawnien IS NOT DISTINCT FROM public.polyserver_api_wnioski.projektant_numer_uprawnien)
-                 )
+REMOVE_DUPLICATES_WNIOSKI="""DELETE FROM polyserver_api_wnioski
+WHERE id IN
+    (SELECT id
+    FROM 
+        (SELECT id,
+         ROW_NUMBER() OVER( PARTITION BY identyfikator,
+  numer_ewidencyjny_system,
+  data_wplywu_wniosku_do_urzedu
+        ORDER BY  id ) AS row_num
+        FROM polyserver_api_wnioski ) t
+        WHERE t.row_num > 1 );
 """
 
 class Command(BaseCommand):
@@ -95,60 +78,47 @@ class Command(BaseCommand):
                 zipf = zipfile.ZipFile(directory + '/' + file)
                 zipf.extractall(directory) # UNCOMMENT THIS FOR ACTUAL UNZIP!
 
-    def insert_data_pozwolenia(self, directory):
+    def insert_data_pozwolenia(self, directory,chunk_rows):
         skipped=0
         failed=0
         updated=0
+        failures = pd.DataFrame()
         for file in os.listdir(directory):
             if file.endswith(".csv"):
-                data=self.process_file(directory + '/' + file)
-                [self.failures,skip,fail,update]=self.send_sql(data)
+                full_file=os.path.join(directory,file)
+                data=pd.read_csv(full_file,delimiter="#",error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows)
+                for chunk in data:
+                    chunk = chunk.replace({np.nan: None})
+                    chunk['identyfikator']=chunk['jednosta_numer_ew']+'.'+chunk['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+chunk['numer_dzialki'].map(str)
+                    [failures_log,skip,fail,update]=self.send_sql(chunk)
+                    skipped =skip+skipped
+                    failed +=fail
+                    updated +=update
+                    failures = failures.append(failures_log)
                 save_file_name=directory+'/failed/'+file.split('.')[0]+"_failed.csv"
-                #uncomment to save file
-                skipped =skip+skipped
-                failed +=fail
-                updated +=update
-                self.failures.to_csv(save_file_name,index=False,sep='#')
+                failures.to_csv(save_file_name,index=False,sep='#')
         return [updated,skipped,failed]
 
-    def insert_data_wnioski(self, directory):
+    def insert_data_wnioski(self, directory,chunk_rows):
         skipped=0
         failed=0
         updated=0
+        failures = pd.DataFrame()
         for file in os.listdir(directory):
             if file.endswith(".csv"):
-                data=self.process_file_wnioski(directory + '/' + file)
-                [self.failures,skip,fail,update]=self.send_sql_wnioski(data)
+                full_file=os.path.join(directory,file)
+                data=pd.read_csv(full_file,delimiter="#",nrows=120,error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows)
+                for chunk in data:
+                    chunk = chunk.replace({np.nan: None})
+                    chunk['identyfikator']=chunk['jednostki_numer']+'.'+chunk['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+chunk['numer_dzialki'].map(str)
+                    [failures_log,skip,fail,update]=self.send_sql_wnioski(chunk)
+                    skipped =skip+skipped
+                    failed +=fail
+                    updated +=update
+                    failures = failures.append(failures_log)
                 save_file_name=directory+'/failed/'+file.split('.')[0]+"_failed.csv"
-                skipped =skip+skipped
-                failed +=fail
-                updated +=update
-                #uncomment to save file
-                
-                self.failures.to_csv(save_file_name,index=False,sep='#')
-                #print(self.failed)
+                failures.to_csv(save_file_name,index=False,sep='#')
         return [updated,skipped,failed]
-
-    def process_file(self,file):
-        print(file)
-        #add nrows=nr of records
-        data=pd.read_csv(file,delimiter="#",nrows=6, error_bad_lines=False)
-        data = data.replace({np.nan: None})
-        data['identyfikator']=data['jednosta_numer_ew']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
-        #replace nans with null
-        #print(data['identyfikator'])
-        return data
-
-    def process_file_wnioski(self,file):
-        print(file)
-        #add nrows=nr of records
-        data=pd.read_csv(file,delimiter="#",nrows=50, error_bad_lines=False)
-        data = data.replace({np.nan: None})
-        data['identyfikator']=data['jednostki_numer']+'.'+data['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+data['numer_dzialki'].map(str)
-        #replace nans with null
-        #print(data['identyfikator'])
-        return data
-
 
     def send_sql(self,data):
         with connection.cursor() as cursor:
@@ -183,16 +153,18 @@ class Command(BaseCommand):
                             row['stara_numeracja_obreb_z_wnioskiu'],row['stara_numeracja_dzialka_z_wniosku'],datetime.now()]
                 #print(listof)    #temporary solution
                 try:
-                    cursor.execute("INSERT INTO polyserver_api_pozwoleniaupload VALUES (DEFAULT,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof )
+                    cursor.execute("INSERT INTO polyserver_api_pozwolenia VALUES (DEFAULT,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof )
                     self.updated +=1
                     print("insert "+str(self.updated)+ " from "+str(len(data.index)))
                 except:
                     print("something went wrong")
                     self.failures.append(row)
                     self.failed +=1
-            cursor.execute(MIGRATE_POZWOLENIA_SQL)
+            cursor.execute(REMOVE_DUPLICATES_POZWOLENIA)
             self.updated=cursor.rowcount
+            print("removed:" +str(self.updated)+" duplicates.")
             self.skipped = len(data.index)-self.updated-self.failed
+            
         return [pd.DataFrame(self.failures),self.skipped,self.failed,self.updated]
     def send_sql_wnioski(self,data):
         self.id=0
@@ -202,7 +174,7 @@ class Command(BaseCommand):
         self.skipped=0
         
         with connection.cursor() as cursor:
-            self.updated_rec=10            
+            self.updated_rec=0            
             # truncate table
             cursor.execute("TRUNCATE TABLE polyserver_api_wnioskiupload")
             for index,row in data.iterrows():
@@ -216,17 +188,18 @@ class Command(BaseCommand):
                     #temporary solution
                 try:
                     cursor.execute(
-                        "INSERT INTO polyserver_api_wnioskiupload VALUES (DEFAULT,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof)
+                        "INSERT INTO polyserver_api_wnioski VALUES (DEFAULT,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof)
                     self.updated_rec +=1
                     print("insert "+str(self.updated_rec)+ " from "+str(len(data.index)))
                 except:
                     print("something went wrong")
                     self.failed +=1
                     self.failures.append(row)
-                cursor.execute(MIGRATE_WNIOSKI_SQL)
-                self.updated=cursor.rowcount
-                self.skipped = len(data.index)-self.updated-self.failed
-        return [pd.DataFrame(self.failures),self.skipped,self.failed,self.updated]
+            cursor.execute(REMOVE_DUPLICATES_WNIOSKI)
+            self.updated=cursor.rowcount
+            print("removed:" +str(self.updated)+" duplicates.")
+            self.skipped = len(data.index)-self.updated_rec-self.failed
+        return [pd.DataFrame(self.failures),self.skipped,self.failed,self.updated_rec]
     def int_to_4string(self,number):
         zeros=""
         if(type(number)==str):
@@ -236,6 +209,7 @@ class Command(BaseCommand):
             zeros += "0"
         return (zeros + str(number))
     def merge_pozwolenia_parcels(self):
+        print("Merging pozwolenia table with geometries")
         start = time.process_time()
         with connection.cursor() as cursor:
             cursor.execute("TRUNCATE TABLE polyserver_api_pozwoleniageom")
@@ -244,6 +218,7 @@ class Command(BaseCommand):
         print("Table updated, time elapsed: "+str(round(((time.process_time() - start) * 1000), 2))+" s.")
 
     def merge_wnioski_parcels(self):
+        print("Merging wnioski table with geometries")
         start = time.process_time()
         with connection.cursor() as cursor:
             cursor.execute("TRUNCATE TABLE polyserver_api_wnioskigeom")
@@ -267,22 +242,22 @@ class Command(BaseCommand):
         
         
         #download pozwolenia data from GUNB
-        '''self.clear_dir(POZWOLENIA)
-        self.save_data(MALOPOLSKA, POZWOLENIA)
-        self.save_data(PODKARPACIE, POZWOLENIA)
+        self.clear_dir(POZWOLENIA)
+        #self.save_data(MALOPOLSKA, POZWOLENIA)
+        #self.save_data(PODKARPACIE, POZWOLENIA)
         self.save_data(SLASKIE, POZWOLENIA)
-        self.save_data(DOLNOSLASKIE, POZWOLENIA)
-        self.save_data(OPOLSKIE,POZWOLENIA)
+        #self.save_data(DOLNOSLASKIE, POZWOLENIA)
+        #self.save_data(OPOLSKIE,POZWOLENIA)
         self.unzip_folder(POZWOLENIA)
 
         #download wnioski
-        self.clear_dir(WNIOSKI)
-        self.save_data(ZGLOSZENIA,WNIOSKI)
-        self.unzip_folder(WNIOSKI)'''
+        #self.clear_dir(WNIOSKI)
+        #self.save_data(ZGLOSZENIA,WNIOSKI)
+        #self.unzip_folder(WNIOSKI)
 
 
 
-        self.update_data(self.insert_data_pozwolenia(POZWOLENIA),self.insert_data_wnioski(WNIOSKI))
+        self.update_data(self.insert_data_pozwolenia(POZWOLENIA,50000),self.insert_data_wnioski(WNIOSKI,50))
         self.merge_pozwolenia_parcels()
         self.merge_wnioski_parcels()
 

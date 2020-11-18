@@ -87,7 +87,6 @@ class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
         polygon = self.createPoly(float(bounds[0]),float(bounds[1]),float(bounds[2]),float(bounds[3]))
         print (bbox.split(','))
         if bbox is not None :
-            print("notnone")
             queryset = PozwoleniaGeom.objects.filter(point__bboverlaps=polygon).filter(data_wydania_decyzji__gte=start_date).filter(data_wydania_decyzji__lt=end_date)
         if category != None and category !="undefined" and category !="":
             queryset=queryset.filter(kategoria=category)
@@ -105,7 +104,6 @@ class PozwolenieSingleViewSet(viewsets.ModelViewSet):
 
         if id is not None:
             queryset = PozwoleniaGeom.objects.filter(id=id)
-            print(id)
         return queryset
 
 class WnioskiGeomViewSet(viewsets.ModelViewSet):
@@ -145,7 +143,6 @@ class WniosekSingleViewSet(viewsets.ModelViewSet):
 
         if id is not None:
             queryset = WnioskiGeom.objects.filter(id=id)
-            print(id)
         return queryset
 
 class StatsViewSet(viewsets.ViewSet):
@@ -163,19 +160,12 @@ class UpdateViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         max_id=Update.objects.latest('id').id
-        print(max_id)
         queryset = Update.objects.filter(id=max_id)
         return queryset
 
 class IpDataViewSet(viewsets.ModelViewSet):
     queryset = IpData.objects.all()
     serializer_class = IpDataSerializer
-
-    #@action(detail=False,methods=['POST'])
-    #def sendIp(self,request,pk,format=None):
-    #    print(request.data)
-    #    resp={'mess':"it is"}
-    #    return Response(resp,status=status.HTTP_200_OK)
 
 
 class ContactViewSet(viewsets.ModelViewSet):
