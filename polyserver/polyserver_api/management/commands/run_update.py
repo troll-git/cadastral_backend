@@ -215,6 +215,7 @@ class Command(BaseCommand):
             cursor.execute("TRUNCATE TABLE polyserver_api_pozwoleniageom")
             cursor.execute("INSERT INTO polyserver_api_pozwoleniageom SELECT pozwolenia.*,area,mpoly FROM  polyserver_api_dzialki dzialki INNER JOIN polyserver_api_pozwolenia pozwolenia ON pozwolenia.identyfikator=dzialki.identyfikator")
             cursor.execute("UPDATE polyserver_api_pozwoleniageom SET point = ST_PointOnSurface(mpoly)")
+            cursor.execute("UPDATE polyserver_api_pozwoleniageom SET point_wkt = ST_AsText(point)")
         print("Table updated, time elapsed: "+str(round(((time.process_time() - start) * 1000), 2))+" s.")
 
     def merge_wnioski_parcels(self):
@@ -224,6 +225,7 @@ class Command(BaseCommand):
             cursor.execute("TRUNCATE TABLE polyserver_api_wnioskigeom")
             cursor.execute("INSERT INTO polyserver_api_wnioskigeom SELECT wnioski.*,mpoly FROM  polyserver_api_dzialki dzialki INNER JOIN polyserver_api_wnioski wnioski ON wnioski.identyfikator=dzialki.identyfikator")
             cursor.execute("UPDATE polyserver_api_wnioskigeom SET point = ST_PointOnSurface(mpoly)")
+            cursor.execute("UPDATE polyserver_api_wnioskigeom SET point_wkt = ST_AsText(point)")
         print("Table updated, time elapsed: "+str(round(((time.process_time() - start) * 1000), 2))+" s.")
 
     def update_data(self,pozwolenia_update,wnioski_update):
@@ -242,13 +244,13 @@ class Command(BaseCommand):
         
         
         #download pozwolenia data from GUNB
-        self.clear_dir(POZWOLENIA)
+        #self.clear_dir(POZWOLENIA)
         #self.save_data(MALOPOLSKA, POZWOLENIA)
         #self.save_data(PODKARPACIE, POZWOLENIA)
-        self.save_data(SLASKIE, POZWOLENIA)
+        #self.save_data(SLASKIE, POZWOLENIA)
         #self.save_data(DOLNOSLASKIE, POZWOLENIA)
         #self.save_data(OPOLSKIE,POZWOLENIA)
-        self.unzip_folder(POZWOLENIA)
+        #self.unzip_folder(POZWOLENIA)
 
         #download wnioski
         #self.clear_dir(WNIOSKI)
@@ -257,7 +259,7 @@ class Command(BaseCommand):
 
 
 
-        self.update_data(self.insert_data_pozwolenia(POZWOLENIA,50000),self.insert_data_wnioski(WNIOSKI,50))
+        #self.update_data(self.insert_data_pozwolenia(POZWOLENIA,50000),self.insert_data_wnioski(WNIOSKI,50))
         self.merge_pozwolenia_parcels()
-        self.merge_wnioski_parcels()
+        #self.merge_wnioski_parcels()
 

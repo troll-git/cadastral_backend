@@ -63,7 +63,7 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = (
-       'http://159.65.197.227:3000',
+       'http://localhost:3000',
 )
 
 ROOT_URLCONF = 'polyserver.urls'
@@ -95,9 +95,10 @@ DATABASES = {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'cadastral',
         'USER':'postgres',
-        'PASSWORD':'gunt1234',
-        'HOST':'159.65.197.227',
-        'PORT':'5433'
+        'PASSWORD':'postgres',
+        'HOST':'localhost'
+        #'HOST':'159.65.197.227',
+        #'PORT':'5433'
     }
 }
 

@@ -124,6 +124,7 @@ class PozwoleniaGeom(models.Model):
     area = models.FloatField(null=True)
     mpoly = models.MultiPolygonField(null=True)
     point = models.PointField(null=True)
+    point_wkt = models.CharField(max_length=100,null=True)
 
 class Wnioski(models.Model):
     numer_ewidencyjny_system = models.CharField(max_length=50)
