@@ -71,9 +71,9 @@ class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
     def createPoly(self,xmin,ymin,xmax,ymax):
         poly = Polygon(((ymin,xmin ), (ymin, xmax), (ymax, xmax), (ymax, xmin), (ymin, xmin)))
         return poly
-
     def get_queryset(self):
         bbox = self.request.query_params.get('bbox',None)
+        print(bbox)
         start_date = self.request.query_params.get('start_date',None)
         end_date = self.request.query_params.get('end_date', None)
         category = self.request.query_params.get('category',None)
@@ -93,6 +93,7 @@ class PozwoleniaGeomViewSet(viewsets.ModelViewSet):
         if investor != None and investor !="undefined" and investor !="":
             queryset=queryset.filter(Q(nazwisko_inwestora__icontains=investor)|Q(imie_inwestora__icontains=investor)|Q(nazwa_inwestor__icontains=investor))
         return queryset
+
 
 class PozwolenieSingleViewSet(viewsets.ModelViewSet):
     queryset = PozwoleniaGeom.objects.all()

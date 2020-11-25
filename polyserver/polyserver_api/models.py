@@ -214,6 +214,7 @@ class WnioskiGeom(models.Model):
     created_at = models.DateField(null=True)
     mpoly = models.MultiPolygonField(null=True)
     point = models.PointField(null=True)
+    point_wkt = models.CharField(max_length=100,null=True)
 
 class Update(models.Model):
     updated_at = models.DateField(null=True)

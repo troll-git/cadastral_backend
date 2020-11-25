@@ -107,7 +107,7 @@ class Command(BaseCommand):
         for file in os.listdir(directory):
             if file.endswith(".csv"):
                 full_file=os.path.join(directory,file)
-                data=pd.read_csv(full_file,delimiter="#",nrows=120,error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows)
+                data=pd.read_csv(full_file,delimiter="#",error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows)
                 for chunk in data:
                     chunk = chunk.replace({np.nan: None})
                     chunk['identyfikator']=chunk['jednostki_numer']+'.'+chunk['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+chunk['numer_dzialki'].map(str)
@@ -231,6 +231,11 @@ class Command(BaseCommand):
     def update_data(self,pozwolenia_update,wnioski_update):
         print(pozwolenia_update)
         print(wnioski_update)
+        dzialki=0
+        pozwolenia=0
+        pozwolenia_geom=0
+
+
         listof=[datetime.now(),pozwolenia_update[0],pozwolenia_update[1],pozwolenia_update[2],wnioski_update[0],wnioski_update[1],wnioski_update[2]]
         with connection.cursor() as cursor:
             #cursor.execute("SELECT nextval 'polyserver_api_update."id"'")
@@ -259,7 +264,7 @@ class Command(BaseCommand):
 
 
 
-        #self.update_data(self.insert_data_pozwolenia(POZWOLENIA,50000),self.insert_data_wnioski(WNIOSKI,50))
-        self.merge_pozwolenia_parcels()
-        #self.merge_wnioski_parcels()
+        #self.update_data(self.insert_data_pozwolenia(POZWOLENIA,50000),self.insert_data_wnioski(WNIOSKI,50000))
+        #self.merge_pozwolenia_parcels()
+        self.merge_wnioski_parcels()
 
