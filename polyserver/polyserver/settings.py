@@ -25,7 +25,7 @@ SECRET_KEY = '*ap2req-ufp84f2$74$vkw#nx=v2f%y8t7ht2b15_bj5x=lrst'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['159.65.197.227','127.0.0.1']
+ALLOWED_HOSTS = ['159.65.197.227','127.0.0.1','gunb-mapa.pl']
 #ALLOWED_HOSTS = ['*']
 
 
@@ -140,3 +140,4 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+SECURE_SSL_REDIRECT             = False

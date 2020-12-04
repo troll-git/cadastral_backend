@@ -16,6 +16,14 @@ PODKARPACIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_podkarpackie
 SLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_slaskie.zip"
 DOLNOSLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_dolnoslaskie.zip"
 OPOLSKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_opolskie.zip"
+LUBELSKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_lubelskie.zip"
+LODZKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_lodzkie.zip"
+SWIETOKRZYSKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_swietokrzyskie.zip"
+PODLASKIE = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_podlaskie.zip"
+
+
+
+
 
 
 ZGLOSZENIA = "http://wyszukiwarka.gunb.gov.pl/pliki_pobranie/wynik_zgloszenia.zip"
@@ -86,7 +94,7 @@ class Command(BaseCommand):
         for file in os.listdir(directory):
             if file.endswith(".csv"):
                 full_file=os.path.join(directory,file)
-                data=pd.read_csv(full_file,delimiter="#",error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows)
+                data=pd.read_csv(full_file,delimiter="#",error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows,quoting=csv.QUOTE_NONE)
                 for chunk in data:
                     chunk = chunk.replace({np.nan: None})
                     chunk['identyfikator']=chunk['jednosta_numer_ew']+'.'+chunk['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+chunk['numer_dzialki'].map(str)
@@ -107,7 +115,7 @@ class Command(BaseCommand):
         for file in os.listdir(directory):
             if file.endswith(".csv"):
                 full_file=os.path.join(directory,file)
-                data=pd.read_csv(full_file,delimiter="#",error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows)
+                data=pd.read_csv(full_file,delimiter="#",error_bad_lines=False,low_memory=False,lineterminator='\n',chunksize=chunk_rows,quoting=csv.QUOTE_NONE)
                 for chunk in data:
                     chunk = chunk.replace({np.nan: None})
                     chunk['identyfikator']=chunk['jednostki_numer']+'.'+chunk['obreb_numer'].map(str).apply(self.int_to_4string)+'.'+chunk['numer_dzialki'].map(str)
@@ -155,7 +163,7 @@ class Command(BaseCommand):
                 try:
                     cursor.execute("INSERT INTO polyserver_api_pozwolenia VALUES (DEFAULT,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof )
                     self.updated +=1
-                    print("insert "+str(self.updated)+ " from "+str(len(data.index)))
+                    #print("insert "+str(self.updated)+ " from "+str(len(data.index)))
                 except:
                     print("something went wrong")
                     self.failures.append(row)
@@ -190,7 +198,7 @@ class Command(BaseCommand):
                     cursor.execute(
                         "INSERT INTO polyserver_api_wnioski VALUES (DEFAULT,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",listof)
                     self.updated_rec +=1
-                    print("insert "+str(self.updated_rec)+ " from "+str(len(data.index)))
+                    #print("insert "+str(self.updated_rec)+ " from "+str(len(data.index)))
                 except:
                     print("something went wrong")
                     self.failed +=1
@@ -212,9 +220,12 @@ class Command(BaseCommand):
         print("Merging pozwolenia table with geometries")
         start = time.process_time()
         with connection.cursor() as cursor:
-            cursor.execute("TRUNCATE TABLE polyserver_api_pozwoleniageom")
-            cursor.execute("INSERT INTO polyserver_api_pozwoleniageom SELECT pozwolenia.*,area,mpoly FROM  polyserver_api_dzialki dzialki INNER JOIN polyserver_api_pozwolenia pozwolenia ON pozwolenia.identyfikator=dzialki.identyfikator")
+            cursor.execute("TRUNCATE TABLE polyserver_api_pozwoleniageom RESTART IDENTITY")
+            cursor.execute("REINDEX TABLE polyserver_api_pozwoleniageom")
+            cursor.execute("INSERT INTO polyserver_api_pozwoleniageom SELECT pozwolenia.*,area,mpoly FROM  polyserver_api_dzialki dzialki INNER JOIN polyserver_api_pozwolenia pozwolenia ON pozwolenia.identyfikator=dzialki.identyfikator ON CONFLICT (id) DO NOTHING")
+            print("creating centroids")    
             cursor.execute("UPDATE polyserver_api_pozwoleniageom SET point = ST_PointOnSurface(mpoly)")
+            print('creating wkt')
             cursor.execute("UPDATE polyserver_api_pozwoleniageom SET point_wkt = ST_AsText(point)")
         print("Table updated, time elapsed: "+str(round(((time.process_time() - start) * 1000), 2))+" s.")
 
@@ -223,7 +234,7 @@ class Command(BaseCommand):
         start = time.process_time()
         with connection.cursor() as cursor:
             cursor.execute("TRUNCATE TABLE polyserver_api_wnioskigeom")
-            cursor.execute("INSERT INTO polyserver_api_wnioskigeom SELECT wnioski.*,mpoly FROM  polyserver_api_dzialki dzialki INNER JOIN polyserver_api_wnioski wnioski ON wnioski.identyfikator=dzialki.identyfikator")
+            cursor.execute("INSERT INTO polyserver_api_wnioskigeom SELECT wnioski.*,mpoly FROM  polyserver_api_dzialki dzialki INNER JOIN polyserver_api_wnioski wnioski ON wnioski.identyfikator=dzialki.identyfikator ON CONFLICT (id) DO NOTHING")
             cursor.execute("UPDATE polyserver_api_wnioskigeom SET point = ST_PointOnSurface(mpoly)")
             cursor.execute("UPDATE polyserver_api_wnioskigeom SET point_wkt = ST_AsText(point)")
         print("Table updated, time elapsed: "+str(round(((time.process_time() - start) * 1000), 2))+" s.")
@@ -249,22 +260,28 @@ class Command(BaseCommand):
         
         
         #download pozwolenia data from GUNB
-        #self.clear_dir(POZWOLENIA)
-        #self.save_data(MALOPOLSKA, POZWOLENIA)
-        #self.save_data(PODKARPACIE, POZWOLENIA)
-        #self.save_data(SLASKIE, POZWOLENIA)
-        #self.save_data(DOLNOSLASKIE, POZWOLENIA)
-        #self.save_data(OPOLSKIE,POZWOLENIA)
-        #self.unzip_folder(POZWOLENIA)
+        self.clear_dir(POZWOLENIA)
+        self.save_data(MALOPOLSKA, POZWOLENIA)
+        self.save_data(PODKARPACIE, POZWOLENIA)
+        self.save_data(SLASKIE, POZWOLENIA)
+        self.save_data(DOLNOSLASKIE, POZWOLENIA)
+        self.save_data(OPOLSKIE,POZWOLENIA)
+        self.save_data(LUBELSKIE,POZWOLENIA)
+        self.save_data(LODZKIE,POZWOLENIA)
+        self.save_data(SWIETOKRZYSKIE,POZWOLENIA)
+        self.save_data(PODLASKIE,POZWOLENIA)
+
+
+        self.unzip_folder(POZWOLENIA)
 
         #download wnioski
-        #self.clear_dir(WNIOSKI)
-        #self.save_data(ZGLOSZENIA,WNIOSKI)
-        #self.unzip_folder(WNIOSKI)
+        self.clear_dir(WNIOSKI)
+        self.save_data(ZGLOSZENIA,WNIOSKI)
+        self.unzip_folder(WNIOSKI)
 
 
 
-        #self.update_data(self.insert_data_pozwolenia(POZWOLENIA,50000),self.insert_data_wnioski(WNIOSKI,50000))
-        #self.merge_pozwolenia_parcels()
+        self.update_data(self.insert_data_pozwolenia(POZWOLENIA,50000),self.insert_data_wnioski(WNIOSKI,50000))
+        self.merge_pozwolenia_parcels()
         self.merge_wnioski_parcels()
 
